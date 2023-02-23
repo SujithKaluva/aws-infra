@@ -106,6 +106,11 @@ resource "aws_security_group" "application" {
   }
   vpc_id = aws_vpc.vpc_1.id
 }
+#Create Key Pair
+resource "aws_key_pair" "ec2keypair" {
+  key_name   = "ec2AMI"
+  public_key = file("~/.ssh/ec2.pub")
+}
 
 # Create EC2 Instance
 resource "aws_instance" "EC2-CSYE6225" {
@@ -120,7 +125,7 @@ resource "aws_instance" "EC2-CSYE6225" {
   }
   vpc_security_group_ids = [aws_security_group.application.id]
   subnet_id              = aws_subnet.public_subnets_1[0].id
-  key_name               = "ec2"
+  key_name               = aws_key_pair.ec2keypair.key_name
 
   tags = {
     Name = "WebApp EC2 Instance"
