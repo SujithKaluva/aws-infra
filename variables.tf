@@ -63,3 +63,22 @@ variable "aws_ami" {
   description = "ami values"
   type        = string
 }
+
+variable "rds_db_name" {
+  description = "RDS DB NAME"
+  type        = string
+}
+
+variable "rds_identifier" {
+  description = "RDS IDENTIFIER"
+  type        = string
+}
+variable "rds_username" {
+  description = "RDS USERNAME"
+  type        = string
+}
+
+variable "rds_password" {
+  description = "RDS PASSWORD"
+  type        = string
+}
