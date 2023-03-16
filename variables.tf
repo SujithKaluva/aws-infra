@@ -82,3 +82,8 @@ variable "rds_password" {
   description = "RDS PASSWORD"
   type        = string
 }
+
+variable "domain_name" {
+  description = "domain name"
+  type        = string
+}

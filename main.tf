@@ -353,3 +353,18 @@ resource "aws_iam_role_policy_attachment" "s3_access_role_policy_attachment" {
   policy_arn = aws_iam_policy.s3_access_policy.arn
   role       = aws_iam_role.s3_access_role.name
 }
+
+# Create Route53 Zone
+data "aws_route53_zone" "hosted_zone" {
+  name         = var.domain_name
+  private_zone = false
+}
+
+# Create Route53 record
+resource "aws_route53_record" "hosted_zone_record" {
+  zone_id = data.aws_route53_zone.hosted_zone.zone_id
+  name    = var.domain_name
+  type    = "A"
+  ttl     = "60"
+  records = [aws_instance.EC2-CSYE6225.public_ip]
+}
