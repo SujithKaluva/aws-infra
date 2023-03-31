@@ -356,9 +356,9 @@ resource "aws_iam_role_policy_attachment" "s3_access_role_policy_attachment" {
 }
 
 resource "aws_iam_policy_attachment" "web-app-attach-cloudwatch" {
- name = "attach-cloudwatch-server-policy-ec2"
- roles= [aws_iam_role.s3_access_role.name]
- policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+  name       = "attach-cloudwatch-server-policy-ec2"
+  roles      = [aws_iam_role.s3_access_role.name]
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
 # Create Route53 Zone
