@@ -87,3 +87,8 @@ variable "domain_name" {
   description = "domain name"
   type        = string
 }
+
+variable "health_check" {
+  description = "app health check"
+  type        = string
+}

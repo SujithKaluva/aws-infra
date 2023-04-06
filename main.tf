@@ -79,12 +79,12 @@ resource "aws_security_group" "application" {
   name_prefix = "application-"
   description = "Security group for WebApp"
   vpc_id      = aws_vpc.vpc_1.id
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  # ingress {
+  #   from_port   = 22
+  #   to_port     = 22
+  #   protocol    = "tcp"
+  #   cidr_blocks = ["0.0.0.0/0"]
+  # }
 
   # ingress {
   #   from_port   = 80
@@ -118,14 +118,14 @@ resource "aws_security_group" "application" {
   }
 }
 
-# resource "aws_security_group_rule" "application_ssh_ingress" {
-#   type                     = "ingress"
-#   from_port                = 22
-#   to_port                  = 22
-#   protocol                 = "tcp"
-#   security_group_id        = aws_security_group.application.id
-#   source_security_group_id = aws_security_group.load_balancer_sg.id
-# }
+resource "aws_security_group_rule" "application_ssh_ingress" {
+  type                     = "ingress"
+  from_port                = 22
+  to_port                  = 22
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.application.id
+  source_security_group_id = aws_security_group.load_balancer_sg.id
+}
 
 resource "aws_security_group_rule" "application_web_ingress" {
   type                     = "ingress"
@@ -207,15 +207,6 @@ resource "aws_security_group" "load_balancer_sg" {
   }
 }
 
-# resource "aws_security_group_rule" "egress_lb_to_app" {
-#   type                     = "egress"
-#   from_port                = 0
-#   to_port                  = 0
-#   protocol                 = "-1"
-#   security_group_id        = aws_security_group.application.id
-#   source_security_group_id = aws_security_group.load_balancer_sg.id
-# }
-
 #Create Key Pair
 resource "aws_key_pair" "ec2keypair" {
   key_name   = "ec2AMI"
@@ -283,7 +274,6 @@ resource "aws_db_instance" "rds_instance" {
   parameter_group_name   = aws_db_parameter_group.rds_parameter_group.name
   allocated_storage      = 10
   skip_final_snapshot    = true
-  #   engine_version         = "5.7"
 
   tags = {
     Name = "csye6225_rds_instance"
@@ -501,15 +491,12 @@ resource "aws_autoscaling_group" "webapp_autoscaling_group" {
   # launch_configuration = aws_launch_template.EC2-CSYE6225.id
   launch_template {
     id = aws_launch_template.EC2-CSYE6225.id
-    # version = "$Latest"
   }
 
   vpc_zone_identifier = [aws_subnet.public_subnets_1[0].id]
 
-  # Add the target group ARN to the autoscaling group's load balancers
   target_group_arns = [aws_lb_target_group.application.arn]
 
-  # Wait 5 minutes before starting new instances after a scaling event
   default_cooldown = 60
   # count            = 3
   # Tags for the instances created by the ASG
@@ -611,7 +598,7 @@ resource "aws_lb_target_group" "application" {
 
   # Health check configuration for the target group
   health_check {
-    path                = "/healthz"
+    path                = var.health_check
     port                = "traffic-port"
     protocol            = "HTTP"
     interval            = 30
