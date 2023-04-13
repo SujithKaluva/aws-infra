@@ -17,3 +17,7 @@ This Terraform code creates a VPC with multiple public and private subnets acros
 
 ## Clean up
 To delete the infrastructure created by this code, run `terraform destroy` after navigating to the root directory.
+
+## Certificate Import
+Command to import the Certificate
+`aws acm import-certificate --certificate file://certificate.crt --certificate-chain file://CertificateChain.pem --private-key file://Private.key`
