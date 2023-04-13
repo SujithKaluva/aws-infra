@@ -274,10 +274,34 @@ resource "aws_db_instance" "rds_instance" {
   parameter_group_name   = aws_db_parameter_group.rds_parameter_group.name
   allocated_storage      = 10
   skip_final_snapshot    = true
+  storage_encrypted      = true
+  kms_key_id             = aws_kms_key.rdskms.arn
 
   tags = {
     Name = "csye6225_rds_instance"
   }
+}
+
+resource "aws_kms_key" "rdskms" {
+  # customer_master_key_spec = "RSA_2048"
+  # key_usage                = "ENCRYPT_DECRYPT"
+  description = "Encrypting RDS instance"
+  policy = jsonencode({
+    Id = "ebskeypolicy"
+    Statement = [
+      {
+        Action = "kms:*"
+        Effect = "Allow"
+        Principal = {
+          AWS = "*"
+        }
+
+        Resource = "*"
+        Sid      = "Enable IAM User Permissions"
+      },
+    ]
+    Version = "2012-10-17"
+  })
 }
 
 # DB subnet group
@@ -431,6 +455,59 @@ resource "aws_route53_record" "hosted_zone_record" {
   }
 }
 
+resource "aws_kms_key" "ebskms" {
+  description             = "Symmetric customer-managed KMS key for EBS"
+  deletion_window_in_days = 10
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [{
+      "Sid" : "Enable IAM User Permissions",
+      "Effect" : "Allow",
+      "Principal" : {
+        "AWS" : "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+      },
+      "Action" : "kms:*",
+      "Resource" : "*"
+      },
+      {
+        "Sid" : "Allow service-linked role use of the customer managed key",
+        "Effect" : "Allow",
+        "Principal" : {
+          "AWS" : [
+            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
+          ]
+        },
+        "Action" : [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey"
+        ],
+        "Resource" : "*"
+      },
+      {
+        "Sid" : "Allow attachment of persistent resources",
+        "Effect" : "Allow",
+        "Principal" : {
+          "AWS" : [
+            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
+          ]
+        },
+        "Action" : [
+          "kms:CreateGrant"
+        ],
+        "Resource" : "*",
+        "Condition" : {
+          "Bool" : {
+            "kms:GrantIsForAWSResource" : true
+          }
+        }
+      }
+    ] }
+  )
+
+}
 resource "aws_launch_template" "EC2-CSYE6225" {
   name                    = "EC2-CSYE6225"
   image_id                = var.aws_ami
@@ -444,6 +521,8 @@ resource "aws_launch_template" "EC2-CSYE6225" {
       volume_size           = 50
       volume_type           = "gp2"
       delete_on_termination = true
+      encrypted             = true
+      kms_key_id            = aws_kms_key.ebskms.arn
     }
   }
   network_interfaces {
@@ -490,7 +569,8 @@ resource "aws_autoscaling_group" "webapp_autoscaling_group" {
   desired_capacity = 1
   # launch_configuration = aws_launch_template.EC2-CSYE6225.id
   launch_template {
-    id = aws_launch_template.EC2-CSYE6225.id
+    id      = aws_launch_template.EC2-CSYE6225.id
+    version = "$Latest"
   }
 
   vpc_zone_identifier = [aws_subnet.public_subnets_1[0].id]
@@ -575,11 +655,17 @@ resource "aws_lb" "application" {
   enable_deletion_protection = false
 }
 
+data "aws_acm_certificate" "certi" {
+  domain   = var.domain_name
+  statuses = ["ISSUED"]
+}
+
 resource "aws_lb_listener" "application" {
-  # Configure the HTTP listener on port 80
+  # Configure the HTTPS listener on port 443
   load_balancer_arn = aws_lb.application.arn
-  port              = "80"
-  protocol          = "HTTP"
+  port              = "443"
+  protocol          = "HTTPS"
+  certificate_arn   = data.aws_acm_certificate.certi.arn
 
   # Configure the target group for the listener
   default_action {
@@ -607,3 +693,5 @@ resource "aws_lb_target_group" "application" {
     timeout             = 5
   }
 }
+
+data "aws_caller_identity" "current" {}
